@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=1
+VERSION=0.0.2
 TEMP_DIR="/tmp"
 INSTALLER_DIR=~/app/installer
 HYBRIS_DIR=~/app/hybris
@@ -29,6 +29,13 @@ function option_picked() {
     COLOR='\033[01;31m' # bold red
     RESET='\033[00;00m' # normal white
     MESSAGE=${@:-"${RESET}Error: No message passed"}
+    echo -e "${MESSAGE}${RESET}"
+}
+
+function error_message() {
+    COLOR='\033[01;31m' # bold red
+    RESET='\033[00;00m' # normal white
+    MESSAGE=${@:-"${RESET}Error: No message passed"}
     echo -e "${COLOR}${MESSAGE}${RESET}"
 }
 
@@ -50,7 +57,7 @@ while [ opt != '' ]
 		if [ $? -eq 0 ]; then
 		    option_picked "hybris has started, but it may take a couple more minutes before you can access it in the web browser."
 		fi
-	        show_menu;
+		show_menu;
         ;;
 
         2) clear;
@@ -103,7 +110,23 @@ while [ opt != '' ]
 	;;
 
 	8) clear;
-		#TODO
+		option_picked "Downloading latest runner"
+		wget -O /tmp/runner.sh -q https://raw.githubusercontent.com/bradyemerson/hybris_vm/master/runner.sh
+		if [ $? -eq 0 ]; then
+			old_version=`grep -P '^VERSION=([\d\.]+)$' ~/runner.sh | grep -oP '([\d\.]+)$'`
+			new_version=`grep -P '^VERSION=([\d\.]+)$' /tmp/runner.sh | grep -oP '([\d\.]+)$'`
+			if [ $old_version = $new_version ]; then
+				option_picked "You are already running the latest version.";
+			else
+				option_picked "Updating to new version: ${new_version}";
+				rm ~/runner.sh;
+				cp /tmp/runner.sh ~/runner.sh;
+				chmod 775 ~/runner.sh;
+			fi
+		   rm /tmp/runner.sh;
+		else
+			error_message "Error downloading latest version. Please try again later."
+		fi
 		show_menu;
 	;;
 
