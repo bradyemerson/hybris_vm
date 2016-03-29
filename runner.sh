@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=0.0.2
+VERSION=0.0.3
 TEMP_DIR="/tmp"
 INSTALLER_DIR=~/app/installer
 HYBRIS_DIR=~/app/hybris
@@ -122,6 +122,9 @@ while [ opt != '' ]
 				rm ~/runner.sh;
 				cp /tmp/runner.sh ~/runner.sh;
 				chmod 775 ~/runner.sh;
+				option_picked "New version applied. Please restart to complete upgrade. Press enter to exit.";
+				pause;
+				exit;
 			fi
 		   rm /tmp/runner.sh;
 		else
