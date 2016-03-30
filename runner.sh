@@ -1,8 +1,9 @@
 #!/bin/bash
-VERSION=0.0.3
+VERSION=0.0.4
 TEMP_DIR="/tmp"
 INSTALLER_DIR=~/app/installer
 HYBRIS_DIR=~/app/hybris
+LAST_CHECK_FILE=~/.runner.update.check
 
 function show_menu(){
     NORMAL=`echo "\033[m"`
@@ -42,6 +43,42 @@ function error_message() {
 function pause(){
    read -p "$*"
 }
+
+function check_for_updates() {
+	wget -O /tmp/runner.sh -q https://raw.githubusercontent.com/bradyemerson/hybris_vm/master/runner.sh
+	if [ $? -eq 0 ]; then
+		old_version=`grep -P '^VERSION=([\d\.]+)$' ~/runner.sh | grep -oP '([\d\.]+)$'`
+		new_version=`grep -P '^VERSION=([\d\.]+)$' /tmp/runner.sh | grep -oP '([\d\.]+)$'`
+		if [ $old_version != $new_version ]; then
+			option_picked "Updating to new version: ${new_version}";
+			rm ~/runner.sh;
+			cp /tmp/runner.sh ~/runner.sh;
+			chmod 775 ~/runner.sh;
+			option_picked "New version applied. Please restart to complete upgrade. Press enter to exit.";
+			pause;
+			exit;
+		elif [ $1 ]; then
+			option_picked "You already have the latest version";
+		fi
+		rm /tmp/runner.sh;
+		echo $(date +%s) > ${LAST_CHECK_FILE}
+	else
+		error_message "Error downloading latest version. Please check internet connection and try again later."
+	fi
+}
+
+# Check for Updates if more than 7 days
+if [ ! -f ${LAST_CHECK_FILE} ]; then
+	# no last check
+	check_for_updates;
+else
+	old_timestamp=`cat ${LAST_CHECK_FILE} `;
+	new_timestamp=$(date +%s)	
+	echo "update file ${new_timestamp}, ${old_timestamp}";
+	if [ $((${new_timestamp} - ${old_timestamp} > 604800)) ]; then
+		check_for_updates;
+	fi
+fi
 
 clear
 show_menu
@@ -110,26 +147,8 @@ while [ opt != '' ]
 	;;
 
 	8) clear;
-		option_picked "Downloading latest runner"
-		wget -O /tmp/runner.sh -q https://raw.githubusercontent.com/bradyemerson/hybris_vm/master/runner.sh
-		if [ $? -eq 0 ]; then
-			old_version=`grep -P '^VERSION=([\d\.]+)$' ~/runner.sh | grep -oP '([\d\.]+)$'`
-			new_version=`grep -P '^VERSION=([\d\.]+)$' /tmp/runner.sh | grep -oP '([\d\.]+)$'`
-			if [ $old_version = $new_version ]; then
-				option_picked "You are already running the latest version.";
-			else
-				option_picked "Updating to new version: ${new_version}";
-				rm ~/runner.sh;
-				cp /tmp/runner.sh ~/runner.sh;
-				chmod 775 ~/runner.sh;
-				option_picked "New version applied. Please restart to complete upgrade. Press enter to exit.";
-				pause;
-				exit;
-			fi
-		   rm /tmp/runner.sh;
-		else
-			error_message "Error downloading latest version. Please try again later."
-		fi
+		option_picked "Checking for latest version"
+		check_for_updates true;
 		show_menu;
 	;;
 
