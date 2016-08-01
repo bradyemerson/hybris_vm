@@ -144,7 +144,7 @@ while [ opt != '' ]
 			echo
 		    echo "hybris server has started, but it will take a couple more minutes before you can access it in the web browser."
 			echo "Checking if hybris is available..."
-			wget_output=$(wget --spider --tries 4 http://localhost:9001/  2>&1)
+			wget_output=$(wget --spider --tries 3 --no-check-certificate https://localhost:9002/  2>&1)
 			wget_exit_code=$?
 			echo
 			
