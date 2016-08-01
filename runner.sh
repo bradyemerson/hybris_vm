@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=0.0.5
+VERSION=0.0.6
 TEMP_DIR="/tmp"
 SOURCE_DIR=~/source
 APP_DIR=~/app
@@ -144,7 +144,7 @@ while [ opt != '' ]
 			echo
 		    echo "hybris server has started, but it will take a couple more minutes before you can access it in the web browser."
 			echo "Checking if hybris is available..."
-			wget_output=$(wget --spider --tries 2 http://localhost:9001/  2>&1)
+			wget_output=$(wget --spider --tries 4 http://localhost:9001/  2>&1)
 			wget_exit_code=$?
 			echo
 			

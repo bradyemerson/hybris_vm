@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=hybris
+#GenericName=Terminal
+Comment=hybris server utility
+Exec=lxterminal --geometry=120x35 -e /home/hybris/runner.sh
+Terminal=false
+Type=Application
+#Encoding=UTF-8
+Icon=/home/hybris/Pictures/logo_hybris_icon.png
+Categories=Other
+X-Desktop-File-Install-Version=0.22
