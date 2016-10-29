@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=0.0.6
+VERSION=1.0.0
 TEMP_DIR="/tmp"
 SOURCE_DIR=~/source
 APP_DIR=~/app
@@ -40,19 +40,24 @@ function pause(){
 }
 
 function init_hybris() {
+	cd ${HYBRIS_DIR}/bin/platform;
+	. ./setantenv.sh
+	ant initialize;
+	
+	if [ $? -eq 0 ]; then
+		echo "Initialization successful. Press enter to continue."
+		pause;
+	else
+		error_message "Initialization failed. Check the error messages above. Press enter to continue."
+		pause;
+	fi
+}
+
+function init_hybris_with_warning() {
 	error_message "Warning: Initialize will delete all your current data. Are you sure you want to continue? (y/n)"
 	read option;
 	if [[ $option = 'y' ]]; then
-		cd ${HYBRIS_DIR}/bin/platform;
-		. ./setantenv.sh
-		ant initialize;
-		if [ $? -eq 0 ]; then
-			echo "Initialization successful. Press enter to continue."
-			pause;
-		else
-			error_message "Initialization failed. Check the error messages above. Press enter to continue."
-			pause;
-		fi
+		init_hybris;
 	fi
 }
 
@@ -96,8 +101,10 @@ function change_recipe() {
 		change_recipe;
 	elif [[ $recipe != "" ]]; then 
 		${INSTALLER_DIR}/install.sh -r ${recipe} setup
-		if [ $? -eq 0 ]; then
+		if [ -e "${SOURCE_DIR}/hybrislicence.jar" ] ; then
 			cp ${SOURCE_DIR}/hybrislicence.jar ${HYBRIS_DIR}/config/licence;
+		fi
+		if [ $? -eq 0 ]; then
 			echo
 			echo -e "Change recipe to ${recipe} was successful. Do you want to initialize to load new sample data? (y/n)";
 			read choice;
@@ -144,7 +151,7 @@ while [ opt != '' ]
 			echo
 		    echo "hybris server has started, but it will take a couple more minutes before you can access it in the web browser."
 			echo "Checking if hybris is available..."
-			wget_output=$(wget --spider --tries 3 --no-check-certificate https://localhost:9002/  2>&1)
+			wget_output=$(wget --spider --tries 4 --no-check-certificate https://localhost:9002/  2>&1)
 			wget_exit_code=$?
 			echo
 			
@@ -178,7 +185,7 @@ while [ opt != '' ]
      ;;
 
     4) clear;
-		init_hybris;
+		init_hybris_with_warning;
 		clear;
 		show_menu;
   	;;
@@ -208,6 +215,9 @@ while [ opt != '' ]
 				cd ${APP_DIR};
 				echo "Starting unzip";
 				tar --lzma -xvf ${SOURCE_DIR}/hybris.tar.lzma 1>/dev/null
+				if [ -e "${SOURCE_DIR}/custom.properties" ] ; then
+					cp ${SOURCE_DIR}/custom.properties ${INSTALLER_DIR}/customconfig;
+				fi
 				echo "Unzip Complete. Check above for error messages. Press enter to continue."
 				pause;
 				change_recipe;
