@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=1.0.0
+VERSION=1.0.2
 TEMP_DIR="/tmp"
 SOURCE_DIR=~/source
 APP_DIR=~/app
@@ -17,12 +17,13 @@ function show_menu(){
     echo -e "${MENU}*********************************************${NORMAL}"
     echo -e "${MENU}**${NUMBER} 1)${MENU} Start hybris server"
     echo -e "${MENU}**${NUMBER} 2)${MENU} Stop hybris server"
-    echo -e "${MENU}**${NUMBER} 3)${MENU} Change Configuration Recipe (load alternative store fronts)"
+    echo -e "${MENU}**${NUMBER} 3)${MENU} Change Storefront Recipe (reload from zip)"
+    echo -e ""
+    echo -e "******** Less Common Options ****************"
     echo -e "${MENU}**${NUMBER} 4)${MENU} Initialize hybris"
     echo -e "${MENU}**${NUMBER} 5)${MENU} Rebuild hybris (ant clean all)"
-	echo -e "${MENU}**${NUMBER} 6)${MENU} Replace hybris from zip (reset hybris)"
-    echo -e "${MENU}**${NUMBER} 7)${MENU} Tail console log"
-    echo -e "${MENU}**${NUMBER} 8)${MENU} Self update this program"
+    echo -e "${MENU}**${NUMBER} 6)${MENU} Tail console log"
+    echo -e "${MENU}**${NUMBER} 7)${MENU} Self update this program"
     echo -e "${MENU}*********************************************${NORMAL}"
     echo -e "${ENTER_LINE}Please enter a menu option and enter or ${RED_TEXT}enter to exit. ${NORMAL}"
     read opt
@@ -62,7 +63,7 @@ function init_hybris_with_warning() {
 }
 
 function check_for_updates() {
-	wget -O /tmp/runner.sh -q https://raw.githubusercontent.com/bradyemerson/hybris_vm/master/runner.sh
+	wget -O /tmp/runner.sh -q --timeout=5 --tries=1 https://raw.githubusercontent.com/bradyemerson/hybris_vm/master/runner.sh
 	if [ $? -eq 0 ]; then
 		old_version=`grep -P '^VERSION=([\d\.]+)$' ~/runner.sh | grep -oP '([\d\.]+)$'`
 		new_version=`grep -P '^VERSION=([\d\.]+)$' /tmp/runner.sh | grep -oP '([\d\.]+)$'`
@@ -122,7 +123,6 @@ function change_recipe() {
 
 # Check for Updates if more than 7 days
 if [ ! -f ${LAST_CHECK_FILE} ]; then
-	# no last check
 	check_for_updates;
 else
 	old_timestamp=`cat ${LAST_CHECK_FILE} `;
@@ -134,7 +134,7 @@ fi
 
 clear
 echo "*********************************************"
-echo "***          Version: ${VERSION}"
+echo "***          Version: ${VERSION}               ***"
 echo "*********************************************"
 
 show_menu
@@ -168,49 +168,23 @@ while [ opt != '' ]
 		fi
 		clear
 		show_menu
-    ;;
+	;;
 
-    2) clear;
+	2) clear;
 		cd ${HYBRIS_DIR}/bin/platform;
 		./hybrisserver.sh stop;
 		echo "Press enter to continue"
 		pause;
 		clear;
 	    show_menu;
-    ;;
-
-    3) clear;
-		change_recipe;
-		show_menu;
-     ;;
-
-    4) clear;
-		init_hybris_with_warning;
-		clear;
-		show_menu;
-  	;;
-
-	5) clear;
-		cd ${HYBRIS_DIR}/bin/platform;
-		. ./setantenv.sh
-		ant clean all;
-		if [ $? -eq 0 ]; then
-			echo "Build successful. Press enter to continue."
-			pause;
-		else
-			error_message "Build failed. Check the error messages above. Press enter to continue."
-			pause;
-		fi
-		clear;
-		show_menu;
 	;;
-
-	6) clear;
+	
+	3) clear;
 		if [ -e "${SOURCE_DIR}/hybris.tar.lzma" ] ; then
 			error_message "Warning: This will clear and rebuild hybris from zip. Are you sure you want to continue? (y/n)"
 			read option;
 			if [[ $option = 'y' ]]; then
-				echo "Clearing previous instillation"
+				echo "Clearing previous installation"
 				rm -rf ${APP_DIR}/*;
 				cd ${APP_DIR};
 				echo "Starting unzip";
@@ -231,14 +205,35 @@ while [ opt != '' ]
 		show_menu;
 	;;
 
-	7) clear;
+	4) clear;
+		init_hybris_with_warning;
+		clear;
+		show_menu;
+	;;
+
+	5) clear;
+		cd ${HYBRIS_DIR}/bin/platform;
+		. ./setantenv.sh
+		ant clean all;
+		if [ $? -eq 0 ]; then
+			echo "Build successful. Press enter to continue."
+			pause;
+		else
+			error_message "Build failed. Check the error messages above. Press enter to continue."
+			pause;
+		fi
+		clear;
+		show_menu;
+	;;
+
+	6) clear;
 		cd ${HYBRIS_DIR}/log/tomcat;
 		file=`ls -t console* | head -n1`
 		lxterminal --geometry=120x35 -e "tail --lines=200 -f ${file}"
 		show_menu;
 	;;
 
-	8) clear;
+	7) clear;
 		echo "Checking for latest version"
 		check_for_updates true;
 		show_menu;
