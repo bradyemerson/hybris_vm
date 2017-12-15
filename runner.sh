@@ -1,11 +1,29 @@
 #!/bin/bash
-VERSION=1.0.2
+VERSION=1.0.3
 TEMP_DIR="/tmp"
 SOURCE_DIR=~/source
 APP_DIR=~/app
 INSTALLER_DIR=${APP_DIR}/installer
 HYBRIS_DIR=${APP_DIR}/hybris
 LAST_CHECK_FILE=~/.runner.update.check
+RECIPE_FILE=~/.runner.recipe
+
+# Check for Updates if more than 7 days
+if [ ! -f ${LAST_CHECK_FILE} ]; then
+	check_for_updates;
+else
+	old_timestamp=`cat ${LAST_CHECK_FILE} `;
+	new_timestamp=$(date +%s)
+	if [ $((${new_timestamp} - ${old_timestamp} > 604800)) ]; then
+		check_for_updates;
+	fi
+fi
+
+# Load current storefront recipe
+current_recipe=Unknown
+if [ -f ${RECIPE_FILE} ]; then
+	current_recipe=`cat ${RECIPE_FILE}`
+fi
 
 function show_menu(){
     NORMAL=`echo "\033[m"`
@@ -15,6 +33,8 @@ function show_menu(){
     RED_TEXT=`echo "\033[31m"`
     ENTER_LINE=`echo "\033[33m"`
     echo -e "${MENU}*********************************************${NORMAL}"
+		echo -e "${MENU}** Current Storefront Recipe: ${current_recipe}"
+		echo -e "${MENU}*********************************************${NORMAL}"
     echo -e "${MENU}**${NUMBER} 1)${MENU} Start hybris server"
     echo -e "${MENU}**${NUMBER} 2)${MENU} Stop hybris server"
     echo -e "${MENU}**${NUMBER} 3)${MENU} Change Storefront Recipe (reload from zip)"
@@ -63,7 +83,7 @@ function init_hybris_with_warning() {
 }
 
 function check_for_updates() {
-	wget -O /tmp/runner.sh -q --timeout=5 --tries=1 https://raw.githubusercontent.com/bradyemerson/hybris_vm/master/runner.sh
+	wget -O /tmp/runner.sh -q --timeout=5 --tries=1 --no-check-certificate https://raw.githubusercontent.com/bradyemerson/hybris_vm/master/runner.sh
 	if [ $? -eq 0 ]; then
 		old_version=`grep -P '^VERSION=([\d\.]+)$' ~/runner.sh | grep -oP '([\d\.]+)$'`
 		new_version=`grep -P '^VERSION=([\d\.]+)$' /tmp/runner.sh | grep -oP '([\d\.]+)$'`
@@ -106,6 +126,8 @@ function change_recipe() {
 			cp ${SOURCE_DIR}/hybrislicence.jar ${HYBRIS_DIR}/config/licence;
 		fi
 		if [ $? -eq 0 ]; then
+			echo $recipe > ${RECIPE_FILE}
+			current_recipe=$recipe
 			echo
 			echo -e "Change recipe to ${recipe} was successful. Do you want to initialize to load new sample data? (y/n)";
 			read choice;
@@ -121,21 +143,11 @@ function change_recipe() {
 	clear;
 }
 
-# Check for Updates if more than 7 days
-if [ ! -f ${LAST_CHECK_FILE} ]; then
-	check_for_updates;
-else
-	old_timestamp=`cat ${LAST_CHECK_FILE} `;
-	new_timestamp=$(date +%s)
-	if [ $((${new_timestamp} - ${old_timestamp} > 604800)) ]; then
-		check_for_updates;
-	fi
-fi
-
 clear
 echo "*********************************************"
 echo "***          Version: ${VERSION}               ***"
 echo "*********************************************"
+echo
 
 show_menu
 while [ opt != '' ]
